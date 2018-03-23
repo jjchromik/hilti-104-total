@@ -32,17 +32,17 @@ export type Info_obj_code= enum {
     #process information in monitoring direction 1-29
     M_SP_NA_1 = 1, #implemented
     M_SP_TA_1 = 2, #implemented
-    M_DP_NA_1 = 3,     # implemented in evt
+    M_DP_NA_1 = 3,
     M_DP_TA_1 = 4,
-    M_ST_NA_1 = 5,     # implemented in evt
+    M_ST_NA_1 = 5,
     M_ST_TA_1 = 6,
     M_BO_NA_1 = 7,
     M_BO_TA_1 = 8,
     M_ME_NA_1 = 9, #implemented
     M_ME_TA_1 = 10,
-    M_ME_NB_1 = 11,     # implemented in evt
+    M_ME_NB_1 = 11,
     M_ME_TB_1 = 12,
-    M_ME_NC_1 = 13,     # implemented in evt
+    M_ME_NC_1 = 13,
     M_ME_TC_1 = 14,
     M_IT_NA_1 = 15,
     M_IT_TA_1 = 16,
@@ -59,7 +59,7 @@ export type Info_obj_code= enum {
     M_BO_TB_1 = 33,
     M_ME_TD_1 = 34,		#TODO: implement
     M_ME_TE_1 = 35,
-    M_ME_TF_1 = 36,     # implemented in evt
+    M_ME_TF_1 = 36,
     M_IT_TB_1 = 37,
     M_EP_TD_1 = 38,
     M_EP_TE_1 = 39,
@@ -71,7 +71,7 @@ export type Info_obj_code= enum {
     C_RC_NA_1 = 47,
     C_SE_NA_1 = 48,
     C_SE_NB_1 = 49,
-    C_SE_NC_1 = 50,     # implemented in evt
+    C_SE_NC_1 = 50,
     C_BO_NA_1 = 51,
     #52-57 reserved
     #process information in control direction with time tag 58-64
@@ -84,7 +84,7 @@ export type Info_obj_code= enum {
     C_BO_TA_1 = 64,
     #65-69 reserved
     #system information in monitor direction 70-99
-    M_EI_NA_1 = 70,     # implemented in evt
+    M_EI_NA_1 = 70,
     #71-99 reserved
     #system information in control direction 100-109
     C_IC_NA_1 = 100, #implemented
@@ -109,14 +109,8 @@ export type Info_obj_code= enum {
     F_LS_NA_1 = 123,
     F_AF_NA_1 = 124,
     F_SG_NA_1 = 125,
-    F_DR_TA_1 = 126,
+    F_DR_TA_1 = 126
     #127 reserved
-    C_HU_NA_P = 136,  #DataWatt: Hang up dialled line
-    C_LD_NA_P = 137,  #DataWatt: Login data
-    C_IH_NA_P = 142,  #DataWatt: Requesting the historical data
-    C_SU_NA_P = 143,  #DataWatt: Setting for Daylight saving time 
-    X_DS_NA_P = 200,  #DataWatt: DSAP Messages - DataWatt Serial Application Protocol
-    X_MP_NA_P = 201   #DataWatt: Master Poll Request
 };
 
 #Cause of transmission
@@ -177,8 +171,8 @@ export type Apcis = unit {
 
 export type Apci = unit {
 %byteorder = Spicy::ByteOrder::Little; 
-    start :  b"\x68" &convert=$$.to_uint(Spicy::ByteOrder::Little);
-    #start : uint<8>;
+    #start :  b"\x68";
+    start : uint<8>;
     apduLen : uint<8>;
     ctrl : bitfield(32){
         not_i_mode : 0; 
@@ -189,10 +183,11 @@ export type Apci = unit {
         u_test_fr : 6..7;
         recv_seq : 17..31; #Not used by the U mode
     };
+
     #The first or the two first bits are used to interpret how the rest of the byte is parsed
     #TODO make a better solution for reading one bit and then create a fitting bitfield.
     
-    asdu : Asdu if (self.ctrl.not_i_mode == 0);
+    asdu : Asdu if (self.ctrl.mode == 0);
 
      # switch (self.ctrl.mode) {
      #     0 -> asdu : Asdu;
@@ -202,15 +197,18 @@ export type Apci = unit {
      # };
     
     on %init {
-       #print "INIT APCI";
+       print "INIT APCI";
     }
 
     on ctrl {
-      # print "after ctrl APCI", self;
+        print "after ctrl APCI", self.ctrl;
+        print "start is : ", self.start;
+        print "length: ", self.apduLen;
     }
 
     on %done {
-        #print "DONE APCI";
+        print "DONE APCI";
+        print self;
     }
 };
 
@@ -231,50 +229,19 @@ export type Asdu = unit {
     common_address : uint <16> &byteorder = Spicy::ByteOrder::Little;
     info_obj_addr: bytes &length=ioa_length &convert=$$.to_uint(Spicy::ByteOrder::Little) if (self.data_unit_identifier.seq); #if seq == 0 the IOA should be in each asdu
     switch (self.info_obj_type){
-        #1
         Info_obj_code::M_SP_NA_1 -> m_sp_na_1 : list<Single_Point_Without_Time  			(self.data_unit_identifier.seq)> &count=self.data_unit_identifier.num_ix;
-        #2
         Info_obj_code::M_SP_TA_1 -> m_sp_ta_1 : list<Single_Point_With_Time2    			(self.data_unit_identifier.seq)> &count=self.data_unit_identifier.num_ix;
-        #3
-        Info_obj_code::M_DP_NA_1 -> m_dp_na_1 : list<Double_Point_Without_Time              (self.data_unit_identifier.seq)> &count=self.data_unit_identifier.num_ix;
-        #5
-        Info_obj_code::M_ST_NA_1 -> m_st_na_1 : list<Step_Position_Information              (self.data_unit_identifier.seq)> &count=self.data_unit_identifier.num_ix;
-        #9
         Info_obj_code::M_ME_NA_1 -> m_me_na_1 : list<Measured_Normalized_Value  			(self.data_unit_identifier.seq)> &count=self.data_unit_identifier.num_ix;
-        #11 
-        Info_obj_code::M_ME_NB_1 -> m_me_nb_1 : list<Measured_Scaled_Value                  (self.data_unit_identifier.seq)> &count=self.data_unit_identifier.num_ix;
-        #13 
-        Info_obj_code::M_ME_NC_1 -> m_me_nc_1 : list<Measured_ShortFloat_Value              (self.data_unit_identifier.seq)> &count=self.data_unit_identifier.num_ix;
-        #30
+        Info_obj_code::M_ME_TD_1 -> m_me_td_1 : list<Measured_Value_Normalized_Time30    	(self.data_unit_identifier.seq)> &count=self.data_unit_identifier.num_ix;
         Info_obj_code::M_SP_TB_1 -> m_sp_tb_1 : list<Single_Point_With_Time30   			(self.data_unit_identifier.seq)> &count=self.data_unit_identifier.num_ix;
-        #34
-        Info_obj_code::M_ME_TD_1 -> m_me_td_1 : Measured_Value_Normalized_Time30(self.data_unit_identifier.seq)[self.data_unit_identifier.num_ix];
-        #36 
-        Info_obj_code::M_ME_TF_1 -> m_me_tf_1 : list<Measured_ShortFloat_With_Time30       (self.data_unit_identifier.seq)> &count=self.data_unit_identifier.num_ix;
-        #45
         Info_obj_code::C_SC_NA_1 -> c_sc_na_1 : list<Single_Command             			(self.data_unit_identifier.seq)> &count=self.data_unit_identifier.num_ix;
-        #50 
-        Info_obj_code::C_SE_NC_1 -> c_se_nc_1 : list<Set_Point_Command_ShortFloat           (self.data_unit_identifier.seq)> &count=self.data_unit_identifier.num_ix;
-        #58
-        Info_obj_code::C_SC_TA_1 -> c_sc_ta_1 : list<Single_Command_With_Time2    			(self.data_unit_identifier.seq)> &count=self.data_unit_identifier.num_ix;
-        #61
-        Info_obj_code::C_SE_TA_1 -> c_se_ta_1 : Set_Point_Command_Normalized_With_Time2(self.data_unit_identifier.seq)[self.data_unit_identifier.num_ix];
-        #70 
-        Info_obj_code::M_EI_NA_1 -> m_ei_na_1 : list<End_Of_Initialization                  (self.data_unit_identifier.seq)> &count=self.data_unit_identifier.num_ix;
-        #100
+      #  Info_obj_code::C_SC_TA_1 -> c_sc_ta_1 : list<Single_Command_With_Time2    			(self.data_unit_identifier.seq)> &count=self.data_unit_identifier.num_ix;
+      #  Info_obj_code::C_SE_TA_1 -> c_se_ta_1 : list<Set_Point_Command_Normalized_With_Time2	(self.data_unit_identifier.seq)> &count=self.data_unit_identifier.num_ix;
         Info_obj_code::C_IC_NA_1 -> c_ic_na_1 : list<Interrogation_Command      			(self.data_unit_identifier.seq)> &count=self.data_unit_identifier.num_ix;
-        #101
-        Info_obj_code::C_CI_NA_1 -> c_ci_na_1 : list<Counter_Interrogation_Command          (self.data_unit_identifier.seq)> &count=self.data_unit_identifier.num_ix;
-        #103
-        Info_obj_code::C_CS_NA_1 -> c_cs_na_1 : list<Clock_Synchronization	     			(self.data_unit_identifier.seq)> &count=self.data_unit_identifier.num_ix;
-        #107
-        Info_obj_code::C_TS_TA_1 -> c_ts_ta_1 : list<Test_Command_With_Time2      			(self.data_unit_identifier.seq)> &count=self.data_unit_identifier.num_ix;
-        #142
-        Info_obj_code::C_IH_NA_P -> c_ih_na_p : list<Interrogation_Historical_Command       (self.data_unit_identifier.seq)> &count=self.data_unit_identifier.num_ix;
-        #143
-        Info_obj_code::C_SU_NA_P -> c_su_na_p : list<Daylight_Saving_Time                   (self.data_unit_identifier.seq)> &count=self.data_unit_identifier.num_ix;
-        #200
-        Info_obj_code::X_DS_NA_P -> x_ds_na_p : list<DataWatt_DSAP_Message                  (self.data_unit_identifier.seq)> &count=self.data_unit_identifier.num_ix;
+      #  Info_obj_code::C_CS_NA_1 -> c_cs_na_1 : list<Clock_Synchronization	     			(self.data_unit_identifier.seq)> &count=self.data_unit_identifier.num_ix;
+      #  Info_obj_code::C_TS_TA_1 -> c_ts_ta_1 : list<Test_Command_With_Time2      			(self.data_unit_identifier.seq)> &count=self.data_unit_identifier.num_ix;
+        #9 -> info_obj : Measured_Normalized_Value;
+        #100 -> info_obj2 : Interrogation_Command;
         * -> : b"";
     };
     on %init {
@@ -282,12 +249,13 @@ export type Asdu = unit {
     }
     on %done {
         #print "DONE ASDU", self;
-        #print "C_SE...\n";
-    	#print self.c_se_ta_1;
-        #print self.c_se_ta_1[0].info_obj_addr;
     }
 }; 
 
+tuple <bool, bool, uint64> 
+bro_cot (asdu : Asdu) {
+    return (asdu.cause_of_transmission.negative, asdu.cause_of_transmission.test, asdu.common_address); #cast <uint64>(asdu.cause_of_transmission.cot));
+}
 
 type CP24TIME2A = unit {
     milli : uint<16> &byteorder = Spicy::ByteOrder::Little;
@@ -300,7 +268,7 @@ type CP24TIME2A = unit {
 };
 
 type CP56TIME2A = unit {
-    milli : uint<16> &byteorder = Spicy::ByteOrder::Little; 
+    milli : uint<16> &byteorder = Spicy::ByteOrder::Little;
     minute : uint<8>;
     hour : uint<8>;
     day : uint<8>;
@@ -330,30 +298,9 @@ type Single_Point_With_Time2 = unit (seq : bool){ #2 only SEQ=0 allowed
     info_obj_addr: bytes &length=ioa_length &convert=$$.to_uint(Spicy::ByteOrder::Little) if (!seq); #not 100% sure that the length is always correct
     single_point_information_with_quality_descriptor : SIQ;
     cp24time2a : CP24TIME2A;
-    on %init {
     #print "INIT 2";
-    } 
+    #} 
 };
-
-#3
-type Double_Point_Without_Time = unit (seq : bool){ #3 
-    info_obj_addr: bytes &length=ioa_length &convert=$$.to_uint(Spicy::ByteOrder::Little) if (!seq); #not 100% sure that the length is always correct
-    double_point_information_with_quality_descriptor : DIQ;
-    on %init {
-    #print "INIT 3";
-    } 
-};
-
-#5
-type Step_Position_Information = unit (seq : bool){ #5
-    info_obj_addr: bytes &length=ioa_length &convert=$$.to_uint(Spicy::ByteOrder::Little) if (!seq); #not 100% sure that the length is always correct
-    position_value_with_transient_state_indicator : VTI;
-    double_point_information_with_quality_descriptor : QDS;
-    on %init {
-    #print "INIT 5";
-    } 
-};
-
 
 type Measured_Normalized_Value = unit (seq : bool){ #9
     info_obj_addr: bytes &length=ioa_length &convert=$$.to_uint(Spicy::ByteOrder::Little) if (!seq); #not 100% sure that the length is always correct
@@ -364,25 +311,16 @@ type Measured_Normalized_Value = unit (seq : bool){ #9
     }
 };
 
-#11 
-type Measured_Scaled_Value = unit (seq : bool){ #11
-    info_obj_addr: bytes &length=ioa_length &convert=$$.to_uint(Spicy::ByteOrder::Little) if (!seq); #not 100% sure that the length is always correct
-    scaled_value : bytes &length=2;
+type Measured_Value_Normalized_Time30 = unit(seq : bool) { # M_ME_TD_1 with tag CP56Time2a
+	info_obj_addr: bytes &length=ioa_length &convert=$$.to_uint(Spicy::ByteOrder::Little) if (!seq);
+	normalized_value : bytes &length=2;
     double_point_information_with_quality_descriptor : QDS;
+    cp56time2a : CP56TIME2A;#bytes &length=7;
     on %init {
-    #print "INIT 11";
+    #	print "INIT 34";
     }
 };
-#13 
-type Measured_ShortFloat_Value = unit (seq : bool){ #13
-    info_obj_addr: bytes &length=ioa_length &convert=$$.to_uint(Spicy::ByteOrder::Little) if (!seq); #not 100% sure that the length is always correct
-    shortfloat_value : bytes &length=4;
-    double_point_information_with_quality_descriptor : QDS;
-    on %init {
-    #print "INIT 13";
-    }
-};
-#30
+
 type Single_Point_With_Time30 = unit (seq : bool){ #30 only SEQ=0 allowed
     info_obj_addr: bytes &length=ioa_length &convert=$$.to_uint(Spicy::ByteOrder::Little) if (!seq); #not 100% sure that the length is always correct
     single_point_information_with_quality_descriptor : SIQ;
@@ -391,26 +329,7 @@ type Single_Point_With_Time30 = unit (seq : bool){ #30 only SEQ=0 allowed
     #print "INIT 30";
     }
 };
-#34
-type Measured_Value_Normalized_Time30 = unit(seq : bool) { # M_ME_TD_1 with tag CP56Time2a
-	info_obj_addr: bytes &length=ioa_length &convert=$$.to_uint(Spicy::ByteOrder::Little) if (!seq);
-	normalized_value : bytes &length=2 &convert=$$.to_uint(Spicy::ByteOrder::Little);
-    double_point_information_with_quality_descriptor : QDS;
-    cp56time2a : CP56TIME2A;#bytes &length=7;
-    on %init {
-    #	print "INIT 34";
-    }
-};
 
-type Measured_ShortFloat_With_Time30 = unit (seq : bool){ #36
-    info_obj_addr: bytes &length=ioa_length &convert=$$.to_uint(Spicy::ByteOrder::Little) if (!seq); 
-    value : bytes &length=4;
-    double_point_information_with_quality_descriptor : QDS;
-    cp56time2a : CP56TIME2A;#bytes &length=7;
-    on %init {
-    #print "INIT 36";
-    }
-};
 
 type Single_Command = unit (seq : bool){ #45 only SEQ=0 allowed
     info_obj_addr: bytes &length=ioa_length &convert=$$.to_uint(Spicy::ByteOrder::Little) if (!seq); #not 100% sure that the length is always correct
@@ -420,108 +339,15 @@ type Single_Command = unit (seq : bool){ #45 only SEQ=0 allowed
     }
 };
 
-type Set_Point_Command_ShortFloat = unit (seq : bool){ #50
-    info_obj_addr: bytes &length=ioa_length &convert=$$.to_uint(Spicy::ByteOrder::Little) if (!seq); 
-    value : bytes &length=4;
-    qualifier_of_set-point_command: QOS;
-    on %init {
-    #print "INIT 50";
-    }
-};
-
-type Single_Command_With_Time2 = unit (seq : bool){ #58 only SEQ=0 allowed
-    info_obj_addr: bytes &length=ioa_length &convert=$$.to_uint(Spicy::ByteOrder::Little) if (!seq); 
-    single_command : SCO;
-    cp56time2a : CP56TIME2A;#bytes &length=7;
-    on %init {
-    #print "INIT 58";
-    }
-};
-
-type Set_Point_Command_Normalized_With_Time2 = unit (seq : bool){ #61 only SEQ=0 allowed
-    info_obj_addr: bytes &length=ioa_length &convert=$$.to_uint(Spicy::ByteOrder::Little) if (!seq); 
-    normalized_value: bytes &length=2 &convert=$$.to_uint(Spicy::ByteOrder::Little);   # TODO: set as separate value
-    qos : QOS;  # qualifier of setpoint command
-    cp56time2a : CP56TIME2A;#bytes &length=7;
-    on %init {
-    #print "INIT 61";
-    }
-};
-#70 
-type End_Of_Initialization = unit (seq : bool){ #70 only SEQ=0 allowed
-    info_obj_addr: bytes &length=ioa_length &convert=$$.to_uint(Spicy::ByteOrder::Little) if (!seq); 
-    cause_of_initialization: COI;
-    on %init {
-    #print "INIT 70";
-    }
-};
 
 type Interrogation_Command = unit (seq : bool){ #100 only SEQ=0 allowed
     info_obj_addr: bytes &length=ioa_length &convert=$$.to_uint(Spicy::ByteOrder::Little) if (!seq); #not 100% sure that the length is always correct
-    qualifier_of_interrogation: uint<8>;
+    quality_of_identifier: uint<8>;
     on %init {
     #print "INIT 100";
     }
    };
 
-type Counter_Interrogation_Command = unit (seq : bool){ #101 only SEQ=0 allowed
-    info_obj_addr: bytes &length=ioa_length &convert=$$.to_uint(Spicy::ByteOrder::Little) if (!seq); 
-    qualifier_of_counter_interrogation: uint<8>;
-    on %init {
-    #print "INIT 101";
-    }
-   };
-
-type Clock_Synchronization = unit (seq : bool){ #103 only SEQ=0 allowed
-    info_obj_addr: bytes &length=ioa_length &convert=$$.to_uint(Spicy::ByteOrder::Little) if (!seq); 
-    cp56time2a : CP56TIME2A;
-    on %init {
-    #print "INIT 103";
-    }
-   };
-
-type Test_Command_With_Time2 = unit (seq : bool){ #107 only SEQ=0 allowed
-    info_obj_addr: bytes &length=ioa_length &convert=$$.to_uint(Spicy::ByteOrder::Little) if (!seq); 
-    tsc: uint<16>; # test sequence counter
-    cp56time2a : CP56TIME2A;#bytes &length=7;
-    on %init {
-    #print "INIT 107";
-    }
-};
-
-type Interrogation_Historical_Command = unit (seq : bool){ #142 only SEQ=0 allowed
-    info_obj_addr: bytes &length=ioa_length &convert=$$.to_uint(Spicy::ByteOrder::Little) if (!seq);
-    #quality_of_identifier: uint<8>;
-    padding: bytes &length=8;
-    on %init {
-    # print "INIT 142";
-    }
-   };
-
-type Daylight_Saving_Time = unit (seq : bool){ #143 only SEQ=0 allowed
-    info_obj_addr: bytes &length=ioa_length &convert=$$.to_uint(Spicy::ByteOrder::Little) if (!seq);
-    padding: bytes &length=7;
-    on %init {
-    # print "INIT 143";
-    }
-   };
-
-type DataWatt_DSAP_Message = unit (seq : bool){ #200 
-    info_obj_addr: bytes &length=ioa_length &convert=$$.to_uint(Spicy::ByteOrder::Little) if (!seq);
-    #quality_of_identifier: uint<8>;
-    padding: bytes &length=1;
-    on %init {
-    # print "INIT 200";
-    }
-   };
-
-#Qualifier of set-point command
-type QOS = bitfield(8) {
-    ql : 0..6; #
-    se : 7;    # execute (0)
-};
-
-#Quality descriptor
 type QDS = bitfield(8) {
     ov : 0; #overflow
     bl : 4; #blocked
@@ -530,7 +356,6 @@ type QDS = bitfield(8) {
     iv : 7; #invalid
 };
 
-#Single-point information with quality descriptor
 type SIQ = bitfield(8) {
     st : 0; #status
     bl : 4; #blocked
@@ -539,7 +364,6 @@ type SIQ = bitfield(8) {
     iv : 7; #invalid
 };
 
-#Double-point information with quality descriptor
 type DIQ = bitfield(8) {
     st : 0..1;#status
     bl : 4; #blocked
@@ -548,56 +372,21 @@ type DIQ = bitfield(8) {
     iv : 7; #invalid
 };
 
-#Single command
 type SCO = bitfield(8) {
     scs : 0;    
     qu : 2..6; #not topical
     se : 7; #invalid
 };
 
-#Double command
 type DCO = bitfield(8) {
     dcs : 0..1;
     qu : 2..6; #not topical
     se : 7; #invalid
 };
 
-#Regulating step command
+
 type RCO = bitfield(8) {
     rcs : 0..1;
     qu : 2..6; #not topical
     se : 7; #invalid
 };
-
-#Value with transient state indication
-type VTI = bitfield(8) {
-    val : 0..6; # value
-    tr : 7; #transient
-};
-
-#Cause of initialization
-type COI = bitfield(8) {
-    r : 0..6; # local power switch on
-    i : 7; # initialization
-};
-
-
-################################################
-#                Bro objects                   #
-################################################
-
-tuple <bool, bool, uint64> 
-bro_cot (asdu : Asdu) {
-    return (asdu.cause_of_transmission.negative, asdu.cause_of_transmission.test, asdu.common_address); #cast <uint64>(asdu.cause_of_transmission.cot));
-}
-
-tuple <uint64, uint64 >
-#, bitfield<8>, CP56TIME2A> 
-bro_c_se_ta_1 (asdu : Asdu) {
-    return (asdu.c_se_ta_1[0].info_obj_addr, asdu.c_se_ta_1[0].normalized_value);
-}
-
-tuple <uint64, uint64>
-bro_m_me_td_1 (asdu : Asdu) {
-    return (asdu.m_me_td_1[0].info_obj_addr, asdu.m_me_td_1[0].normalized_value);
-}
