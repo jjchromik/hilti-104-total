@@ -26,7 +26,31 @@ on T104::Apci if (self.ctrl.mode == 3) ->
 # ASDU and ASDU TypeIDs (functions)#
 ####################################
 
+
 on T104::Asdu -> event t104::asdu($conn, T104::bro_cot(self), self.info_obj_type);
+
+#1: SP
+on T104::Single_Point_Information -> 
+	event t104::m_sp_na_1($conn, T104::bro_m_sp_na_1(self)) ;
+#9: NV
+on T104::Measured_Value_Normalized_Value -> 
+	event t104::m_me_na_1($conn, T104::bro_m_me_na_1(self));
+#30: SP 
+on T104::Single_Point_Information_With_TTCP56 -> 
+	event t104::m_sp_tb_1($conn, T104::bro_m_sp_tb_1(self)) ;
+#34: NV
+on T104::Measured_Value_Normalized_Value_With_TTCP56 -> 
+	event t104::m_me_td_1($conn, T104::bro_m_me_td_1(self));
+#36: NV
+on T104::Measured_Value_Short_Floating_Point_With_TTCP56 -> 
+	event t104::m_me_tf_1($conn, T104::bro_m_me_tf_1(self));	
+#58: SP 
+on T104::Single_Command_With_TTCP56 -> 
+	event t104::c_sc_ta_1($conn, T104::bro_c_sc_ta_1(self)) ;
+#61: NV
+on T104::Set_Point_Command_Normalized_Value_With_TTCP56 -> 
+	event t104::c_se_ta_1($conn, T104::bro_c_se_ta_1(self) ) ;
+
 
 #1
 on T104::Asdu if (self.info_obj_type == Info_obj_code::M_SP_NA_1) -> 
@@ -54,8 +78,7 @@ on T104::Asdu if (self.info_obj_type == Info_obj_code::M_SP_TB_1) ->
 	event t104::m_sp_tb_1($conn, T104::bro_cot(self)) ;
 #34
 on T104::Asdu if (self.info_obj_type == Info_obj_code::M_ME_TD_1) -> 
-	event t104::m_me_td_1($conn, T104::bro_m_me_td_1(self));
-	#self.info_obj_addr) ;
+	event t104::m_me_td_1($conn, T104::bro_cot(self));
 #36 
 on T104::Asdu if (self.info_obj_type == Info_obj_code::M_ME_TF_1) -> 
 	event t104::m_me_tf_1($conn, T104::bro_cot(self)) ;
@@ -70,7 +93,7 @@ on T104::Asdu if (self.info_obj_type == Info_obj_code::C_SC_TA_1) ->
 	event t104::c_sc_ta_1($conn, T104::bro_cot(self)) ;
 #61 
 on T104::Asdu if (self.info_obj_type == Info_obj_code::C_SE_TA_1) -> 
-	event t104::c_se_ta_1($conn, T104::bro_c_se_ta_1(self) ) ;
+	event t104::c_se_ta_1($conn, T104::bro_cot(self) ) ;
 #70 
 on T104::Asdu if (self.info_obj_type == Info_obj_code::M_EI_NA_1) -> 
 	event t104::m_ei_na_1($conn, T104::bro_cot(self)) ;
