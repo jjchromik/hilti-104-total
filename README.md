@@ -1,10 +1,17 @@
-# hilti-104
-Generating parser for IEC-104 protocol using Hilti/Spicy
+This docker image uses rsmrr/hilti image and extends it with some network tools. It tests and shows the usage of the IEC-104 parser. 
 
-Original project: http://www.icir.org/hilti/
-Original github repository: https://github.com/rsmmr/hilti
+Build image jjchrom/iec104-hilti:
+```bash
+cd /path/to/Dockerfile && docker build -t jjchrom/iec104-hilti .
+```
 
-Extending the work for IEC 60870-5-104 (IEC104) protocol from: https://github.com/rsmmr/hilti/pull/21
+Run docker:
+```bash
+docker run -i -t -v /full/path/to/IEC104_data:/data "jjchrom/iec104-hilti"
+```
 
 
-Use "make docker-build-internal" to build from this source. 
+Test the parser (e.g. inside the docker): 
+```
+bro -C -r /path/to/pcap_file.pcapng t104.evt t104_lvl_isu.bro 
+```
